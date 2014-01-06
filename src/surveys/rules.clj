@@ -1,4 +1,4 @@
-(ns hello-world.rules  
+(ns surveys.rules  
   (:require
     [tailrecursion.castra :refer [ex auth *request* *session*]]))
 

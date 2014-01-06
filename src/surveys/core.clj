@@ -1,4 +1,4 @@
-(ns hello-world.core
+(ns surveys.core
   (:gen-class)
   (:require
     [ring.middleware.resource        :refer [wrap-resource]]
@@ -10,7 +10,7 @@
 
 (def app
   (->
-    (castra  'hello-world.api)
+    (castra  'surveys.api)
     (wrap-session {:store (cookie-store {:key "a 16-byte secret"})})
     (wrap-resource "public")    
     (wrap-file-info)))

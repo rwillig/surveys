@@ -1,6 +1,6 @@
-(ns hello-world.api
+(ns surveys.api
   (:refer-clojure :exclude [defn])
-  (:require [hello-world.rules :refer [allow deny]])
+  (:require [suveys.rules :refer [allow deny]])
   (:require [tailrecursion.castra :refer [defn]])
 )
 
