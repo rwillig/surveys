@@ -7,9 +7,15 @@
 (defc loading          nil)
 
 ;remotes
-(def ept (mkremote 'surveys.api/doit state error loading))
+(def login!    (mkremote 'surveys.api/login state error loading))
+(def get-state (mkremote 'surveys.api/get-state state error loading))
 
 (cell= (.log js/console (:trace error)))
+(cell= (prn state))
+
+(add-initfn!
+  (fn []
+    (get-state)))
 
 (html
   (head
@@ -21,6 +27,11 @@
     (link :href "css/starter-template.css"  :rel "stylesheet" :media "screen")
     (title "Surveys"))
   (body
-    (h1 "Hello World")
-    (h2 :do-text (cell= state))
-    (button :type "button" :on-click #(ept) "Click Me!")))
+    (h1 "Login")
+    (div :do-toggle error (text "~(:message error)"))
+    (form :on-submit #(login! (val-id "email") (val-id "passwd"))
+      (input :id "email" :placeholder "email") (br)
+      (input :id "passwd" :type "password" :placeholder "password") (br)
+      (button :type "submit" "submit")
+      )
+    ))
