@@ -7,7 +7,7 @@
 (defc loading          nil)
 
 ;remotes
-(def ept (mkremote 'hello-world.api/doit state error loading))
+(def ept (mkremote 'surveys.api/doit state error loading))
 
 (cell= (.log js/console (:trace error)))
 
