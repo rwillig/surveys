@@ -11,7 +11,7 @@
 (defn get-state [& [email]]
   {:rpc [(or (not email) (rules/self email))]}
   (if-let [email (or email (get @*session* :email))]
-    (get-in @model/db [:users email])
+    (assoc (get-in @model/db [:users email]) :email email)
     nil))
 
 (defn login [email password]
@@ -25,12 +25,12 @@
   (swap! model/db update-in [:users email] assoc :first first :last last :company company)
   (get-state email))
 
-(defn setup-company [email location industry subindustry size frequency]
+(defn setup-company [email loc-country loc-state industry subindustry size frequency]
   {:rpc [(and
            (rules/self email)
-           (rules/required email location industry subindustry size frequency))]}
+           (rules/required email loc-country industry subindustry size frequency))]}
   (swap! model/db update-in [:users email] assoc
-    :location location :industry industry :subindustry subindustry :size size :frequency frequency :customers {})
+    :location-country loc-country :location-state loc-state :industry industry :subindustry subindustry :size size :frequency frequency :customers {})
   (get-state email))
 
 (defn select-questions [email promptness accuracy helpfulness partnership]

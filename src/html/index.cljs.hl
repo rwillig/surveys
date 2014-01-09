@@ -6,16 +6,34 @@
 (defc error            nil)
 (defc loading          nil)
 
+;setup company
+(defc states  ["Alabama" "Alaska" "Arizona" "Arkansas" "California" "Colorado" "Connecticut" "Delaware" "District Of Columbia" "Florida" "Georgia" "Hawaii" "Idaho" "Illinois" "Indiana" "Iowa" "Kansas" "Kentucky" "Louisiana" "Maine" "Maryland" "Massachusetts" "Michigan" "Minnesota" "Mississippi" "Missouri" "Montana" "Nebraska" "Nevada" "New Hampshire" "New Jersey" "New Mexico" "New York" "North Carolina" "North Dakota" "Ohio" "Oklahoma" "Oregon" "PALAU" "Pennsylvania" "PUERTO RICO" "Rhode Island" "South Carolina" "South Dakota" "Tennessee" "Texas" "Utah" "Vermont" "Virginia" "Washington" "West Virginia" "Wisconsin" "Wyoming"])
+(defc countries  ["Canada" "United Kingdom" "United States"])
+(defc industries [{:ind "Business Support Services Sector" :bus  ["Business Service Centers & Copy Shops" "Commerical Printing" "Credit Reporting & Collections Services" "Event Planning Services" "Medical Practice Management" "Travel Agent" "Bookkeeping" "Personal Assistant"]}  {:ind "Recruitment/Staffing Services" :bus  ["Executive Search" "General Recruitment" "Information Technology Staffing" "Payroll" "Specialist Staffing"]}  {:ind "Construction" :bus  ["Commercial Construction" "Residential Construction" "Specialty Contractors"]}  {:ind "Financial Services" :bus  ["Financial Planners & Advisers" "Finance Brokerages" "Mortgage Brokerages"]}])
+(defc employees ["1 - 5 Employees" "6 - 10 Employees" "11 - 25 Employees" "26 - 50 Employees" "51 - 100 Employees" "101 - 250 Employees" "251 - 500 Employees" "500+ Employees"])
+(defc notices ["Every Month" "Every 2 Months" "Every 3 Months" "Every 6 Months" "Once a Year"])
+(defc current-country   (:location-country state))
+(defc current-state     (:location-state state))
+(defc current-industry  (:industry state))
+(defc current-business  (:subindustry state))
+(defc current-employees (:size state))
+(defc current-frequency  (:frequency state))
+
+(defc= ind-choices (mapv #(:ind %1) industries))
+(defc= biz-choices (:bus  (first  (filterv #(=  (:ind %1) current-industry ) industries))))
+ 
 ;remotes
-(def get-state   (mkremote 'surveys.api/get-state   state error loading))
-(def login!      (mkremote 'surveys.api/login       state error loading))
-(def sign-up!    (mkremote 'surveys.api/sign-up     state error loading))
-(def register-1! (mkremote 'surveys.api/register-1  state error loading))
+(def get-state   (mkremote 'surveys.api/get-state     state error loading))
+(def login!      (mkremote 'surveys.api/login         state error loading))
+(def sign-up!    (mkremote 'surveys.api/sign-up       state error loading))
+(def register-1! (mkremote 'surveys.api/register-1    state error loading))
+(def setup-comp! (mkremote 'surveys.api/setup-company state error loading))
 
 (cell= (.log js/console (:trace error)))
 (cell= (prn state))
 
 (defc  login-mode? true)
+(defc current-page nil)
 (defc= logged-in?  (not (nil? state)))
 (defc= user-info   (identity state))
 
@@ -61,11 +79,66 @@
             (button :type "submit" "next")
             (a :on-click #(swap! login-mode? not) "login")))))
     (div :do-toggle logged-in?
-      (div :do-toggle (cell= (:company user-info))
+         (div :do-toggle (cell= (:company user-info))
         (h1 "welcome to better feedback with clients")
-        (ul
-          (li (a "setup your company"))
+        (ol :do-class (cell= (if (not (nil? current-page))"breadcrumb" ))
+          (li (a :on-click #(reset! current-page "setup") :do-class (cell= (if (= current-page "setup") "active")) "setup your company"
           (li (a "select your questions"))
           (li (a "add your customers"))
-          (li (a "preview feedback")))))
-    ))
+          (li (a "preview feedback"))))))
+      (div :do-toggle (cell= (= current-page "setup"))
+        (h1 "Company Setup")
+        (form :on-submit #(setup-comp! 
+                            (:email @state) 
+                            (val-id "country") 
+                            (val-id "state")
+                            (val-id "industry")
+                            (val-id "business")
+                            (val-id "employees")
+                            (val-id "frequency"))
+          (select :size "1" :id "country" :on-change #(reset! current-country (val-id "country"))
+            (option :value "" "Choose Country")
+            (loop-tpl
+              :size (count countries)
+              :bindings [country countries]
+              (option :do-attr (cell= {:selected (if (= (:location-country state) country) true false)}) :do-value country :do-text country)))
+          (br)
+          (select :size "1" :id "state"  :do-toggle (cell= (= current-country "United States"))
+            (option :value "" "Choose State")
+            (loop-tpl
+              :size (count states)
+              :bindings [s states]
+              (option :do-attr (cell= {:selected (if (= (:location-state state)s) true false)}) :do-value s :do-text s)))
+          (br)
+          (select :size "1" :id "industry" :on-change #(do (reset! current-industry (val-id "industry")) (reset! current-business ""))
+            (option :value "" "Choose Industry")
+            (loop-tpl
+              :size (count ind-choices)
+              :bindings [ind ind-choices]
+              (option :do-attr (cell= {:selected (if (= (:industry state) ind) true false)}) :do-value ind :do-text ind)))
+          (br)
+          (select :size "1" :id "business" :on-change #(reset! current-business (val-id "business")) 
+            (option :value "" "Choose Business")
+            (loop-tpl
+              :size (apply max  (map #(count  (:bus %1)) industries))
+              :bindings [biz biz-choices]
+              (option :do-attr (cell= {:selected (if (= (:subindustry state) biz) true false) :disabled (if (nil? biz) true false)}) 
+                      :do-value biz 
+                      :do-text biz 
+                      :do-toggle (cell= (not (nil? biz))))))
+          (br) 
+          (select :size "1" :id "employees" :on-change #(reset! current-employees (val-id "employees"))
+            (option :value "" "Select number of employees")
+            (loop-tpl
+              :size (count employees)
+              :bindings [emp employees]
+              (option :do-attr (cell= {:selected (if (= (:size state) emp) true false)}) :do-value emp :do-text emp)))
+          (br)
+          (select :size "1" :id "frequency" :on-change #(reset! current-frequency (val-id "frequency"))
+            (option :value "" "Select feedback frequency")
+            (loop-tpl
+              :size (count notices)
+              :bindings [notice notices]
+              (option :do-attr (cell= {:selected (if (= (:frequency state) notice) true false)}) :do-value notice :do-text notice)))
+          (br)
+          (button :type "submit" "submit"))))))
