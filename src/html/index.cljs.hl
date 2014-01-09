@@ -7,11 +7,17 @@
 (defc loading          nil)
 
 ;remotes
-(def login!    (mkremote 'surveys.api/login state error loading))
-(def get-state (mkremote 'surveys.api/get-state state error loading))
+(def get-state   (mkremote 'surveys.api/get-state   state error loading))
+(def login!      (mkremote 'surveys.api/login       state error loading))
+(def sign-up!    (mkremote 'surveys.api/sign-up     state error loading))
+(def register-1! (mkremote 'surveys.api/register-1  state error loading))
 
 (cell= (.log js/console (:trace error)))
 (cell= (prn state))
+
+(defc  login-mode? true)
+(defc= logged-in?  (not (nil? state)))
+(defc= user-info   (identity state))
 
 (add-initfn!
   (fn []
@@ -27,11 +33,39 @@
     (link :href "css/starter-template.css"  :rel "stylesheet" :media "screen")
     (title "Surveys"))
   (body
-    (h1 "Login")
     (div :do-toggle error (text "~(:message error)"))
-    (form :on-submit #(login! (val-id "email") (val-id "passwd"))
-      (input :id "email" :placeholder "email") (br)
-      (input :id "passwd" :type "password" :placeholder "password") (br)
-      (button :type "submit" "submit")
-      )
+    (div :do-toggle (cell= (not logged-in?))
+      (div :do-toggle login-mode?
+        (h1 "Login")
+        (form :on-submit #(login! (val-id "email") (val-id "passwd"))
+          (input :id "email" :placeholder "email") (br)
+          (input :id "passwd" :type "password" :placeholder "password") (br)
+          (button :type "submit" "submit")
+          (a :on-click #(swap! login-mode? not) "register")))
+      (div :do-toggle (cell= (not login-mode?))
+        (div :do-toggle (cell= (not (:company user-info)))
+          (h1 "Sign Up")
+          (form :on-submit #(sign-up!
+                              (val-id "reg-first")
+                              (val-id "reg-last")
+                              (val-id "reg-cpny")
+                              (val-id "reg-email")
+                              (val-id "reg-pass1")
+                              (val-id "reg-pass2"))
+            (input :id "reg-first" :placeholder "first name") (br)
+            (input :id "reg-last" :placeholder "last name") (br)
+            (input :id "reg-cpny" :placeholder "company name") (br)
+            (input :id "reg-email" :placeholder "email") (br)
+            (input :id "reg-pass1" :placeholder "password" :type "password") (br)
+            (input :id "reg-pass2" :placeholder "confirm password" :type "password") (br)
+            (button :type "submit" "next")
+            (a :on-click #(swap! login-mode? not) "login")))))
+    (div :do-toggle logged-in?
+      (div :do-toggle (cell= (:company user-info))
+        (h1 "welcome to better feedback with clients")
+        (ul
+          (li (a "setup your company"))
+          (li (a "select your questions"))
+          (li (a "add your customers"))
+          (li (a "preview feedback")))))
     ))
